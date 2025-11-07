@@ -376,7 +376,7 @@ GetLibVersion()
 const char*
 GetLibVersionString()
 {
-	return "1.0.0";
+	return "@PROJECT_VERSION@";
 }
 
 }

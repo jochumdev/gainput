@@ -1,14 +1,23 @@
-cmake_minimum_required(VERSION 3.25.0)
-project(gainput)
-message(STATUS "GAINPUT version ${GAINPUT_VERSION}")
+#
+# CMake Requirements
+#
+cmake_minimum_required(VERSION 3.25.0 FATAL_ERROR)
+
+#
+# Project Definition
+#
+project(gainput
+	VERSION 2.1.0
+	LANGUAGES CXX
+	DESCRIPTION "C++ gaming input library"
+)
+
+message(STATUS "GAINPUT version ${PROJECT_VERSION}")
 
 set(CMAKE_MACOSX_RPATH 1)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall -Wextra -pedantic -Wshadow -Wno-variadic-macros"
-  )
-endif()
+# Configure the gainput.cpp with the correct project version from CMake
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/gainput.cpp.in" "${CMAKE_BINARY_DIR}/configured_files/gainput.cpp")
 
 set(GAINPUT_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/GainputAllocator.cpp
@@ -24,7 +33,7 @@ set(GAINPUT_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/dev/GainputNetAddress.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/dev/GainputNetConnection.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/dev/GainputNetListener.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/gainput.cpp
+    ${CMAKE_BINARY_DIR}/configured_files/gainput.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/gestures/GainputButtonStickGesture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/gestures/GainputDoubleClickGesture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/gestures/GainputHoldGesture.cpp
@@ -52,14 +61,12 @@ set(GAINPUT_APPLE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/pad/GainputInputDevicePadIos.mm
 )
 
-if(("${GAINPUT_TARGET_PLATFORM}" MATCHES "QuestVR") OR ("${GAINPUT_TARGET_PLATFORM}" MATCHES
-                                                        "Android")
-)
+if(("${GAINPUT_TARGET_PLATFORM}" MATCHES "QuestVR") OR ANDROID )
   set(GAINPUT_FILES
       ${GAINPUT_FILES}
       ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/touch/GainputInputDeviceGestureDetectorAndroid.cpp
   )
-elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Linux")
+elseif(LINUX)
   if(GAINPUT_ENABLE_HID)
     set(GAINPUT_FILES
         ${GAINPUT_FILES}
@@ -73,7 +80,7 @@ elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Linux")
   endif()
 elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "NX64")
   # Nintendo 64
-elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Windows")
+elseif(WIN32)
   set(GAINPUT_FILES
       ${GAINPUT_FILES}
       ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/hid/timer/GainputTimer.cpp
@@ -83,11 +90,7 @@ elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Windows")
       ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/hid/hidparsers/HIDParserPS4Controller.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/source/gainput/hid/hidparsers/HIDParserPS5Controller.cpp
   )
-elseif(
-  ("${GAINPUT_TARGET_PLATFORM}" MATCHES "TVOS")
-  OR ("${GAINPUT_TARGET_PLATFORM}" MATCHES "iOS")
-  OR ("${GAINPUT_TARGET_PLATFORM}" MATCHES "Darwin")
-)
+elseif( APPLE OR ("${GAINPUT_TARGET_PLATFORM}" MATCHES "Darwin") )
   set(GAINPUT_FILES ${GAINPUT_FILES} ${GAINPUT_APPLE_FILES})
 elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "ORBIS")
   # PS4
@@ -107,13 +110,17 @@ elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "PROSPERO")
 endif()
 
 add_library(${PROJECT_NAME} ${GAINPUT_FILES})
-add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+add_library(gainput::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  target_compile_options(${PROJECT_NAME} PRIVATE -std=gnu++14 -Wshadow -Wno-variadic-macros)
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 target_link_libraries(${PROJECT_NAME} 
   PRIVATE $<$<BOOL:${GAINPUT_ENABLE_HID}>:hidapi::hidapi>
-          $<$<BOOL:${WIN32}>:winmm.lib> #Needed otherwise timeGetTime has no reference
+          $<$<BOOL:${WIN32}>:winmm.lib> # Needed otherwise timeGetTime has no reference
           $<$<BOOL:${LINUX}>:X11> # Needed oterhwise XkbKeycodeToKeysym gets missing reference
 )
 
@@ -124,11 +131,11 @@ if("${GAINPUT_TARGET_PLATFORM}" MATCHES "QuestVR")
   set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_PLATFORM_QUEST)
   target_link_libraries(${PROJECT_NAME} PUBLIC native_app_glue log android)
 
-elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Android")
+elseif(ANDROID)
   set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_PLATFORM_ANDROID)
   target_link_libraries(${PROJECT_NAME} PUBLIC native_app_glue log android)
 
-elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Linux")
+elseif(LINUX)
   set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_PLATFORM_LINUX)
 
   if(GAINPUT_ENABLE_HID)
@@ -140,7 +147,7 @@ elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "NX64")
   set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_PLATFORM_NX64 "GAINPUT_LIB_DYNAMIC=1")
   target_link_libraries(${PROJECT_NAME} PUBLIC Xinput9_1_0 ws2_32)
 
-elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "Windows")
+elseif(WIN32)
   set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_PLATFORM_NX64 "GAINPUT_LIB_DYNAMIC=1")
   target_link_libraries(${PROJECT_NAME} PUBLIC Xinput9_1_0 ws2_32 hidapi::hidapi)
 
@@ -157,7 +164,7 @@ elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "TVOS")
     ${PROJECT_NAME} PUBLIC ${FOUNDATION} ${IOKIT} ${GAME_CONTROLLER} ${UIKIT} ${COREMOTION}
   )
 
-elseif("${GAINPUT_TARGET_PLATFORM}" MATCHES "iOS")
+elseif(IOS)
   set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_PLATFORM_IOS)
   if(${PROJECT_NAME}_ENABLE_IOS_HAPTICS MATCHES ON)
     set(${PROJECT_NAME}_DEFINES ${GAINPUT_DEFINES} GAINPUT_IOS_HAPTICS)

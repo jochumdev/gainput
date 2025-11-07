@@ -2,7 +2,7 @@
     "version": 6,
     "cmakeMinimumRequired": {
       "major": 3,
-      "minor": 23,
+      "minor": 25,
       "patch": 0
     },
     "configurePresets": [
@@ -35,6 +35,22 @@
         }
       },
       {
+        "name": "debug-gcc",
+        "displayName": "Debug GCC",
+        "description": "Using compilers: C = gcc, CXX = g++",
+        "generator": "Unix Makefiles",
+        "binaryDir": "${sourceDir}/build",
+        "cacheVariables": {
+          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+          "CMAKE_C_COMPILER": "gcc",
+          "CMAKE_CXX_COMPILER": "g++",
+          "CMAKE_BUILD_TYPE": "Debug",
+          "GAINPUT_ENABLE_HID": "ON",
+          "GAINPUT_SAMPLES": "ON",
+          "GAINPUT_TESTS": "ON"
+        }
+      },
+      {
         "name": "release-clang-hid",
         "displayName": "Release Clang (system-default) with HID",
         "description": "Using compilers: C = clang, CXX = clang++",
@@ -59,6 +75,10 @@
       {
         "name": "debug-clang-examples",
         "configurePreset": "debug-clang-examples"
+      },
+      {
+        "name": "debug-gcc",
+        "configurePreset": "debug-gcc"
       },
       {
         "name": "release-clang-hid",

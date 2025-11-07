@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.25.0 FATAL_ERROR)
 # Project Definition
 #
 project(gainput
-	VERSION 2.1.0
+	VERSION 2.1.1
 	LANGUAGES CXX
 	DESCRIPTION "C++ gaming input library"
 )
@@ -32,8 +32,8 @@ include(CMakeDependentOption)
 set(GAINPUT_TARGET_PLATFORM "${CMAKE_SYSTEM_NAME}" CACHE STRING "Platform to build gainput for (QuestVR,Linux,Android,Windows,Darwin,TVOS,iOS,NX64,ORBIS,PROSPERO")
 
 option(BUILD_SHARED_LIBS "Build as shared lib" OFF)
-option(GAINPUT_SAMPLES "Build Samples for Gainput" ON)
-option(GAINPUT_TESTS "Build Tests for Gainput" ${PROJECT_IS_TOP_LEVEL})
+option(GAINPUT_SAMPLES "Build Samples for Gainput" OFF)
+option(GAINPUT_TESTS "Build Tests for Gainput" OFF)
 cmake_dependent_option(GAINPUT_ENABLE_HID "Enable HID support (cmake port works only with Linux atm)" ON "NOT WIN32" ON)
 cmake_dependent_option(GAINPUT_ENABLE_IOS_HAPTICS "Enable haptics on iOS" ON "APPLE OR DARWIN" OFF)
 
@@ -45,15 +45,13 @@ if(GAINPUT_ENABLE_HID)
 	FetchContent_Declare(
 		hidapi
 		GIT_REPOSITORY https://github.com/libusb/hidapi.git
-		GIT_TAG hidapi-0.14.0
+		GIT_TAG hidapi-0.15.0
 		SYSTEM
 	)
 	FetchContent_MakeAvailable(hidapi)
 endif()
 
-if(!WIN32)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
-else()
+if(WIN32)
 	set(XINPUT "Xinput9_1_0")
 	if ( ${CMAKE_SYSTEM_VERSION} LESS 6.1 )
 		set(XINPUT, "xinput")
@@ -75,13 +73,23 @@ foreach(_VAR ${_DUMB_VARS})
 endforeach()
 message("")
 
-add_subdirectory(lib)
+#
+# Define code requirement target as an interface library to be linked against by the other targets
+#
+add_library(gainput_requirements INTERFACE)
+add_library(gainput::requirements ALIAS gainput_requirements)
+target_compile_options( gainput_requirements INTERFACE
+	# TODO # Enable this and finish fixing the warnings
+	# $<IF:$<BOOL:${MSVC}>,/W4/WX,-Wall -Wextra -Wpedantic -Werror>
+)
+
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/lib")
 
 if(GAINPUT_SAMPLES)
-	add_subdirectory(samples)
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/samples")
 endif()
 
 if(GAINPUT_TESTS)
-	add_subdirectory(test)
+	add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
 endif()
 

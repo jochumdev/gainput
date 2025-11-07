@@ -91,7 +91,7 @@ public:
 #endif
 
 	/// Updates the input state, call this every frame.
-	void Update(float deltaTime);
+	void Update(float deltaTime = 0.0f);
 
 	/**
 	 * This is used to to clear all input states from all registered devices

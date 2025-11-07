@@ -1,5 +1,10 @@
+cmake_minimum_required(VERSION 3.25.0 FATAL_ERROR)
 
-project(gainputtest)
+project(
+	gainputtest
+	LANGUAGES CXX
+	DESCRIPTION "Gainput test suite"
+)
 
 set(TEST_SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/test_inputdevice.cpp"
@@ -10,14 +15,17 @@ set(TEST_SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/test.cpp"
 )
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-endif()
-
+# Define cmake target for the test project
 if(ANDROID)
 	add_library(${PROJECT_NAME} SHARED ${TEST_SOURCES})
+	add_library(gainput::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 else()
-	add_executable(${PROJECT_NAME} WIN32 ${TEST_SOURCES})
+	add_executable(${PROJECT_NAME} 
+		$<$<BOOL:${WIN32}>:WIN32>
+		$<$<BOOL:${APPLE}>:MACOSX_BUNDLE>
+		${TEST_SOURCES}
+	)
+	add_executable(gainput::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 endif()
 
 if(APPLE AND NOT IOS)
@@ -26,15 +34,18 @@ else()
 	set(APPKIT "")
 endif()
 
-target_link_libraries(${PROJECT_NAME} gainput::gainput)
-
-if(LINUX)
-	target_link_libraries(${PROJECT_NAME} X11 GL rt)
-elseif(WIN32)
-	target_link_libraries(${PROJECT_NAME} ${XINPUT} ws2_32)
-elseif(APPLE)
-	target_link_libraries(${PROJECT_NAME} ${FOUNDATION} ${IOKIT} ${APPKIT})
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+	target_compile_options(${PROJECT_NAME} PRIVATE "-std=c++0x")
 endif()
+
+target_link_libraries(${PROJECT_NAME} 
+	PRIVATE 
+	gainput::requirements
+	gainput::gainput
+	$<$<BOOL:${WIN32}>:${XINPUT} ws2_32>
+	$<$<BOOL:${LINUX}>:X11 GL rt>
+	$<$<BOOL:${APPLE}>:${FOUNDATION} ${IOKIT} ${APPKIT}>
+)
 
 if(MSVC)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")

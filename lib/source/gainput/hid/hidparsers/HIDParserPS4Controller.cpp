@@ -569,22 +569,22 @@ int HIDOpenPS4Controller(HIDDeviceInfo* devInfo, HIDController* controller, uint
     if (con->official && !con->dongle)
     {
         // test if usb connection
-        uint8_t data[PS4_USB_INPUT_REPORT_SIZE];
-        memset(data, 0, sizeof data);
-        *data = PS4_FEATURE_REPORT_DEVICE_ID;
-        int32_t size = hid_get_feature_report(hidDev, data, PS4_USB_INPUT_REPORT_SIZE);
+        uint8_t usbDataIn[PS4_USB_INPUT_REPORT_SIZE];
+        memset(usbDataIn, 0, sizeof usbDataIn);
+        *usbDataIn = PS4_FEATURE_REPORT_DEVICE_ID;
+        int32_t size = hid_get_feature_report(hidDev, usbDataIn, PS4_USB_INPUT_REPORT_SIZE);
 
         // is usb
         if (size >= 7)
         {
             uint8_t devID[6];
 
-            devID[0] = data[6];
-            devID[1] = data[5];
-            devID[2] = data[4];
-            devID[3] = data[3];
-            devID[4] = data[2];
-            devID[5] = data[1];
+            devID[0] = usbDataIn[6];
+            devID[1] = usbDataIn[5];
+            devID[2] = usbDataIn[4];
+            devID[3] = usbDataIn[3];
+            devID[4] = usbDataIn[2];
+            devID[5] = usbDataIn[1];
         }
         // is bluetooth
         else
